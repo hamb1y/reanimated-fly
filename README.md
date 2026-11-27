@@ -14,7 +14,7 @@ Read [What is real and what is scripted](#what-is-real-and-what-is-scripted) bef
 Linux with Docker Engine and the Compose v2 plugin:
 
 ```bash
-git clone https://github.com/hamb1y/flybrain.git && cd flybrain && ./install.sh
+git clone https://github.com/hamb1y/reanimated-fly.git && cd reanimated-fly && ./install.sh
 ```
 
 Then open **http://127.0.0.1:5030**.
