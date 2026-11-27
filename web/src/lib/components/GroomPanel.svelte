@@ -1,0 +1,41 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import FloatPanel from './FloatPanel.svelte';
+
+  let { x = 14, y = 540 }: { x?: number; y?: number } = $props();
+  let g = $state<any>(null);
+  let err = $state('');
+
+  async function call(path: string, body?: unknown) {
+    try {
+      const r = await fetch('/api/physics' + path, body === undefined ? undefined : { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      g = await r.json(); err = '';
+    } catch (e) { err = String(e); }
+  }
+  onMount(() => { call('/groom'); const t = setInterval(() => call('/groom'), 700); return () => clearInterval(t); });
+
+  const dusty = $derived((g?.dust_hz ?? 0) > 0);
+  const manual = $derived(!!g?.manual);
+</script>
+
+<FloatPanel title="Dust and grooming" {x} {y} w={236} z={4}>
+  <div class="row">
+    <button class:on={dusty} onclick={() => call('/dust', { on: !dusty })}>{dusty ? 'Stop dust' : 'Dust her antennae'}</button>
+    <button class:on={manual} onclick={() => call('/groom', { on: !manual })}>{manual ? 'Stop grooming' : 'Groom now'}</button>
+  </div>
+  <p class="tech">
+    {#if g}
+      {g.grooming ? 'Grooming' : 'Not grooming'}. Brain aDN1 {g.adn1_hz == null ? '-' : g.adn1_smoothed_hz?.toFixed(1)} Hz
+      {#if g.on_delay_s != null}, last start {g.on_delay_s.toFixed(1)} s after dust{/if}.
+    {:else}No data.{/if}
+    Dust drives the brain's Johnston's organ neurons; the brain's own aDN1 rate starts grooming. The leg motion is a replay of a recorded real fly. "Groom now" skips the brain.
+  </p>
+  {#if err}<p class="tech">{err}</p>{/if}
+</FloatPanel>
+
+<style>
+  .row { display: flex; gap: 6px; }
+  .row button { flex: 1; font-size: 12px; }
+  .row button.on { background: #fff; color: #000; }
+  .tech { font-size: 11px; opacity: 0.75; margin: 8px 0 0; line-height: 1.35; }
+</style>

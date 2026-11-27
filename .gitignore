@@ -1,0 +1,35 @@
+# Connectome data: downloaded by install.sh, never committed. data/SHA256SUMS is committed.
+data/*
+!data/SHA256SUMS
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node / SvelteKit build output
+node_modules/
+web/build/
+.svelte-kit/
+
+# Large or generated binaries
+*.parquet
+*.npy
+*.pkl
+*.part
+
+# Logs and local config
+*.log
+.env
+.env.*
+!.env.example
+
+# Not part of the public tree
+deploy/DEMO-DAY.md
+tools/positions_check.png
+web/shots/*
+!web/shots/10-idle.png
+!web/shots/13-flee.png
+!web/shots/14-connectome.png

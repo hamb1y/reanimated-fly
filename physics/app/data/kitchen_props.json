@@ -1,0 +1,229 @@
+{
+  "_about": "Logical footprints of the kitchen props on the counter top. SINGLE SOURCE OF TRUTH for collision (physics MuJoCo geoms), obstacle sensing, and GET /props (the web reads it from there at run time). The art in web/src/lib/kitchen.ts is procedural and drawn around the same anchors; each prop's kitchen_ts is the line there that places it, and physics/tools/check_kitchen_props.py fails if that line changed. Footprints are AUTHORED simplifications (ground-level circles and boxes read off kitchen.ts), not computed from the meshes.",
+  "version": 1,
+  "units": "mm",
+  "frame": "MuJoCo z-up, counter top is z = 0, same axes as GET /model",
+  "counter": {
+    "half_x": 300,
+    "half_y": 200
+  },
+  "props": [
+    {
+      "id": "fruit_bowl",
+      "label": "Fruit bowl",
+      "shape": "circle",
+      "pos": [
+        165,
+        40
+      ],
+      "r": 54,
+      "h": 38,
+      "kitchen_ts": "const BX = 165, BY = 40;"
+    },
+    {
+      "id": "mug",
+      "label": "Mug on a cork coaster",
+      "shape": "circle",
+      "pos": [
+        150,
+        -96
+      ],
+      "r": 29,
+      "h": 46,
+      "kitchen_ts": "const MX = 150, MY = -96;"
+    },
+    {
+      "id": "biscuit_plate",
+      "label": "Biscuit plate",
+      "shape": "circle",
+      "pos": [
+        208,
+        -122
+      ],
+      "r": 31,
+      "h": 8,
+      "kitchen_ts": "glaze, 0xf2e8d4, 208, -122, 0);"
+    },
+    {
+      "id": "cutting_board",
+      "label": "Cutting board",
+      "shape": "box",
+      "pos": [
+        -146,
+        -122
+      ],
+      "half": [
+        75,
+        46
+      ],
+      "yaw": 0.14,
+      "h": 9,
+      "kitchen_ts": "box(150, 92, 8, wood, 0xd2a46a, -146, -122, 4, 0.14);"
+    },
+    {
+      "id": "jam_jar",
+      "label": "Jam jar",
+      "shape": "circle",
+      "pos": [
+        82,
+        132
+      ],
+      "r": 18.5,
+      "h": 61,
+      "kitchen_ts": "jam(82, 132, 54, 0x8e2330, true);"
+    },
+    {
+      "id": "honey_jar",
+      "label": "Honey jar",
+      "shape": "circle",
+      "pos": [
+        42,
+        138
+      ],
+      "r": 18.5,
+      "h": 49,
+      "kitchen_ts": "jam(42, 138, 42, 0xd39a2e, false);"
+    },
+    {
+      "id": "tray",
+      "label": "Tray (salt, pepper)",
+      "shape": "box",
+      "pos": [
+        -28,
+        150
+      ],
+      "half": [
+        48,
+        24
+      ],
+      "yaw": 0,
+      "h": 6,
+      "kitchen_ts": "box(96, 46, 4, wood, 0xb98a55, -28, 150, 2);"
+    },
+    {
+      "id": "sugar_bowl",
+      "label": "Sugar bowl",
+      "shape": "circle",
+      "pos": [
+        -62,
+        150
+      ],
+      "r": 24,
+      "h": 41,
+      "kitchen_ts": "20, glaze, 0xf1e7d2, -62, 150, 4);"
+    },
+    {
+      "id": "kettle",
+      "label": "Kettle",
+      "shape": "circle",
+      "pos": [
+        -180,
+        152
+      ],
+      "r": 42,
+      "h": 66,
+      "kitchen_ts": "const KX = -180, KY = 152;"
+    },
+    {
+      "id": "bread_basket",
+      "label": "Bread basket",
+      "shape": "circle",
+      "pos": [
+        225,
+        126
+      ],
+      "r": 52,
+      "h": 70,
+      "kitchen_ts": "const BXK = 225, BYK = 126;"
+    },
+    {
+      "id": "knife_block",
+      "label": "Knife block",
+      "shape": "box",
+      "pos": [
+        266,
+        6
+      ],
+      "half": [
+        23,
+        29
+      ],
+      "yaw": 0.08,
+      "h": 110,
+      "kitchen_ts": "box(46, 58, 104, wood, 0x6b4a2b, 266, 6, 52, 0.08);"
+    },
+    {
+      "id": "cereal_box",
+      "label": "Cereal box",
+      "shape": "box",
+      "pos": [
+        -268,
+        176
+      ],
+      "half": [
+        32,
+        16
+      ],
+      "yaw": -0.12,
+      "h": 155,
+      "kitchen_ts": "box(64, 32, 150, paint, 0xe0a03a, -268, 176, 75, -0.12);"
+    },
+    {
+      "id": "sink",
+      "label": "Sink (rim + basin)",
+      "shape": "box",
+      "pos": [
+        -220,
+        10
+      ],
+      "half": [
+        57,
+        37
+      ],
+      "yaw": 0,
+      "h": 3,
+      "note": "The counter has a sink hole; the physics floor is a solid infinite plane, so the sink is modelled as a low solid block she walks around (she cannot fall in).",
+      "kitchen_ts": "hole.moveTo(-275, -25); hole.lineTo(-275, 45); hole.lineTo(-165, 45);"
+    },
+    {
+      "id": "faucet",
+      "label": "Faucet",
+      "shape": "circle",
+      "pos": [
+        -220,
+        76
+      ],
+      "r": 12,
+      "h": 120,
+      "kitchen_ts": "cyl(11, 12, 7, 18, metal, 0xb08d4f, -220, 76, 3.5);"
+    },
+    {
+      "id": "sponge",
+      "label": "Sponge",
+      "shape": "box",
+      "pos": [
+        -250,
+        82
+      ],
+      "half": [
+        12,
+        9
+      ],
+      "yaw": 0.3,
+      "h": 12,
+      "kitchen_ts": "box(24, 18, 12, matte, 0xd9c34a, -250, 82, 6, 0.3);"
+    },
+    {
+      "id": "soap",
+      "label": "Soap bottle",
+      "shape": "circle",
+      "pos": [
+        -174,
+        86
+      ],
+      "r": 7,
+      "h": 30,
+      "kitchen_ts": "cyl(7, 7, 22, 12, glaze, 0xdfe8e2, -174, 86, 11);"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+numpy
+pyarrow
+fastapi
+uvicorn[standard]
+pytest
+httpx

@@ -1,0 +1,60 @@
+{
+  "n": 138639,
+  "order": "brain index",
+  "index_def": "row order of data/2025_Completeness_783.csv (column 0 = FlyWire root id), as brain/app/data.py load_ids()",
+  "file": "neuron_positions.bin",
+  "dtype": "int16 little-endian, interleaved xyz, shape [n,3]",
+  "decode": "normalised = value / 32767 in [-1,1]; world = normalised * scale + offset (world in voxel_nm-scaled units)",
+  "scale": 408810.0,
+  "offset": [
+    494070.0,
+    248496.0,
+    139820.0
+  ],
+  "voxel_nm": [
+    4.0,
+    4.0,
+    40.0
+  ],
+  "voxel_nm_note": "assumed FAFB14 voxel size applied to table units (x,y 4 nm, z 40 nm)",
+  "source": {
+    "url": "https://raw.githubusercontent.com/flyconnectome/flywire_annotations/a83b2776d60d5764cef36b927f5f9679c16c47a2/supplemental_files/Supplemental_file1_neuron_annotations.tsv",
+    "repo": "https://github.com/flyconnectome/flywire_annotations",
+    "file": "Supplemental_file1_neuron_annotations.tsv",
+    "commit": "a83b2776d60d5764cef36b927f5f9679c16c47a2",
+    "release_latest": "v3.2.0",
+    "sha256": "b214970b55d2fbe0853bba536fdcb9e28730f4eb7ab06f600491df795da683cd"
+  },
+  "version": "FlyWire 783 public release (FAFB14.1 space); annotations flywire_annotations v3.2.0 at the pinned commit",
+  "coords": "soma_x/y/z where present, else pos_x/y/z (root position), same table",
+  "coverage": {
+    "total": 138639,
+    "in_annotation_table": 138625,
+    "soma": 118086,
+    "root_pos": 20539,
+    "real_total": 138625,
+    "real_pct": 99.99,
+    "filled": 14,
+    "filled_pct": 0.01
+  },
+  "filled_by": {
+    "super_class+cell_class+side": 0,
+    "super_class+cell_class": 0,
+    "super_class": 0,
+    "centroid": 14
+  },
+  "filled_method": "median of placed neighbours by super_class/cell_class/side (then coarser), else centroid of placed neurons",
+  "bbox_normalised": {
+    "min": [
+      -1.0,
+      -0.48222296823023164,
+      -0.34046449171422466
+    ],
+    "max": [
+      1.0,
+      0.48222296823023164,
+      0.34046449171422466
+    ]
+  },
+  "bytes": 831834
+}

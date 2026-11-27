@@ -1,0 +1,6 @@
+flygym==2.1.1
+fastapi
+uvicorn[standard]
+websockets
+pytest
+httpx

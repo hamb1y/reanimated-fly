@@ -1,0 +1,8 @@
+# CPU brain image: CPU-only torch wheel (about 1.5 GB image instead of about 7.6 GB for the CUDA build).
+# install.sh uses this file when no GPU is usable in Docker. Usage (from the repo root):
+#   docker compose -f docker-compose.yml -f docker-compose.cpu.yml up -d --build
+services:
+  brain:
+    build:
+      args:
+        TORCH_INDEX: https://download.pytorch.org/whl/cpu

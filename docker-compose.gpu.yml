@@ -1,0 +1,14 @@
+# GPU brain (needs NVIDIA driver + nvidia-container-toolkit on the host):
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d --build
+services:
+  brain:
+    environment:
+      BRAIN_DEVICE: cuda
+      BRAIN_GPU_MEM_MIB: "1024"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

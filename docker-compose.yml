@@ -1,0 +1,36 @@
+# Host networking: every service listens on 127.0.0.1 and reaches the others there. Tested on Linux with
+# Docker Engine. Docker Desktop (macOS, Windows) handles host networking differently and is not tested.
+services:
+  brain:
+    build: {context: ./brain, network: host}
+    network_mode: host
+    environment:
+      BRAIN_DEVICE: ${BRAIN_DEVICE:-auto}
+    command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "5031", "--log-level", "warning"]
+    volumes: ["./data:/data:ro"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:5031/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+  physics:
+    build: {context: ./physics, network: host}
+    network_mode: host
+    command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "5032", "--log-level", "info"]
+    environment:
+      BRAIN_URL: ws://127.0.0.1:5031/stream
+      VISION_TO_BRAIN: "1"
+      LOOMING_DRIVE: both
+    restart: unless-stopped
+  web:
+    build: {context: ./web, network: host}
+    network_mode: host
+    environment:
+      BRAIN_URL: http://127.0.0.1:5031
+      PHYSICS_URL: http://127.0.0.1:5032
+      PORT: "5030"
+      HOST: 127.0.0.1
+      ORIGIN: http://127.0.0.1:5030
+    restart: unless-stopped
