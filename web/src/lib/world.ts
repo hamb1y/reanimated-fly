@@ -19,7 +19,7 @@ type MeshJson = { vertices: number[][]; faces: number[][] };
 type Part = { body: number; key: string; color: number; opacity: number; geo: THREE.BufferGeometry };
 type Anim = { update(dt: number, moving: boolean): void; dispose(): void };
 type FoodModel = { setAmount(a: number): void; dispose(): void };
-type View = { kind: ObjKind; group: THREE.Group; ring: THREE.Mesh; rig?: FlyRig; pos: [number, number]; amount: number; anim?: Anim; food?: FoodModel; lastPos?: [number, number]; movingT?: number };
+type View = { kind: ObjKind; group: THREE.Group; ring: THREE.Mesh; rig?: FlyRig; pos: [number, number]; amount: number; anim?: Anim; food?: FoodModel };
 
 export const TOKEN_COLORS: Record<ObjKind, string> = { food: '#f2683d', mate: '#5b7fd6', scary: '#d7261e' };
 
@@ -193,17 +193,7 @@ export class World {
     this.dirty = true;
   }
 
-  private lastAnimT = performance.now();
   private tick() {
-    const nowMs = performance.now();
-    const adt = Math.min(0.1, (nowMs - this.lastAnimT) / 1000);
-    this.lastAnimT = nowMs;
-    for (const v of this.views.values()) {
-      if (!v.anim) continue;
-      if (!v.lastPos || v.lastPos[0] !== v.pos[0] || v.lastPos[1] !== v.pos[1]) { v.lastPos = [v.pos[0], v.pos[1]]; v.movingT = nowMs; }
-      v.anim.update(adt, v.movingT != null && nowMs - v.movingT < 250);
-      this.dirty = true;
-    }
     if (this.buf.length && this.applyInterp(performance.now())) this.dirty = true;
     if (this.follow && this.focusSet) {
       const d = this.thorax.clone().sub(this.lastFocus);
@@ -385,7 +375,7 @@ export class World {
       group.add(f.group);
       v.food = f;
     } else if (o.kind === 'scary') {
-      const s = createSpider();  // animated: idle breathing, walking gait while it is being moved, periodic threat display
+      const s = createSpider();  // static model (no animation)
       group.add(s.group);
       v.anim = s;
     } else if (this.parts.length) {
