@@ -23,13 +23,6 @@
     <button class:on={dusty} onclick={() => call('/dust', { on: !dusty })}>{dusty ? 'Stop dust' : 'Dust her antennae'}</button>
     <button class:on={manual} onclick={() => call('/groom', { on: !manual })}>{manual ? 'Stop grooming' : 'Groom now'}</button>
   </div>
-  <p class="tech">
-    {#if g}
-      {g.grooming ? 'Grooming' : 'Not grooming'}. Brain aDN1 {g.adn1_hz == null ? '-' : g.adn1_smoothed_hz?.toFixed(1)} Hz
-      {#if g.on_delay_s != null}, last start {g.on_delay_s.toFixed(1)} s after dust{/if}.
-    {:else}No data.{/if}
-    Dust drives the brain's Johnston's organ neurons; the brain's own aDN1 rate starts grooming. The leg motion is a replay of a recorded real fly. "Groom now" skips the brain.
-  </p>
   {#if err}<p class="tech">{err}</p>{/if}
 </FloatPanel>
 

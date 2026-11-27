@@ -5,13 +5,13 @@ export const DEFAULT_PERSONALITY: Pers = { hunger: 0.8, fear: 0.9, lust: 0.9, re
 export const PRESETS: Record<string, Pers> = {
   Coward: { hunger: 0.5, fear: 0.95, lust: 0.4, receptivity: 0.5 },
   Starving: { hunger: 1, fear: 0.5, lust: 0.3, receptivity: 0.6 },
-  Lovesick: { hunger: 0.5, fear: 0.4, lust: 1, receptivity: 0.95 },
+  Courting: { hunger: 0.5, fear: 0.4, lust: 1, receptivity: 0.95 },
   Chill: { hunger: 0.2, fear: 0.2, lust: 0.3, receptivity: 0.6 }
 };
 export const DIALS: { key: keyof Pers; label: string; tech: string; low: string; high: string }[] = [
   { key: 'hunger', label: 'How hungry', tech: 'hunger', low: 'full', high: 'starving' },
   { key: 'fear', label: 'How scared', tech: 'fear', low: 'brave', high: 'terrified' },
-  { key: 'lust', label: 'How lovesick', tech: 'lust', low: 'not interested', high: 'lovesick' },
+  { key: 'lust', label: 'How keen to court', tech: 'courtship', low: 'not interested', high: 'eager to court' },
   { key: 'receptivity', label: 'How receptive', tech: 'receptivity', low: 'walks away', high: 'stays close' }
 ];
 export const KIND_NAME: Record<string, string> = { food: 'Food', mate: 'Mate', scary: 'Scary thing' };

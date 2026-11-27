@@ -408,7 +408,7 @@
       </div>
     </FloatPanel>
 
-    <FloatPanel title="Smell" x={264} y={350} w={236} z={4}>
+    <FloatPanel title="Smell" x={264} y={14} w={236} z={4}>
       <div class="views">
         {#each ['off', 'food', 'cva'] as m (m)}
           <button class:on={odorMode === m} onclick={() => (odorMode = m as typeof odorMode)}>{m === 'off' ? 'Off' : m === 'food' ? 'Food' : 'CVA'}</button>
@@ -422,7 +422,7 @@
         <input id="wx" type="range" min="-300" max="300" step="10" bind:value={windX} oninput={sendWind} />
         <div class="dl"><label for="wy">Wind north</label><b>{windY.toFixed(0)}</b></div>
         <input id="wy" type="range" min="-300" max="300" step="10" bind:value={windY} oninput={sendWind} />
-        <button onclick={calmWind} disabled={windX === 0 && windY === 0}>Calm</button>
+        <button class="calm" onclick={calmWind} disabled={windX === 0 && windY === 0}>Calm</button>
       </div>
     </FloatPanel>
 
@@ -450,7 +450,6 @@
           <div class="eye"><canvas bind:this={eyeL} width="150" height="150"></canvas><span>LEFT eye</span></div>
           <div class="eye"><canvas bind:this={eyeR} width="150" height="150"></canvas><span>RIGHT eye</span></div>
         </div>
-        <p class="tech">The scene drawn from each eye's real spot on her head, about 700 dots (ommatidia) per eye, 120 degrees each. The same view is rendered by the physics service. Sending it to the brain's photoreceptors is off by default: it did not drive the looming neurons (measured) and it set off whole-brain firing. Fleeing uses a scripted looming signal.</p>
       </FloatPanel>
     {:else}
       <button class="eyesopen" onclick={() => (showEyes = true)}>Show what the fly sees</button>
@@ -535,6 +534,7 @@
       <details>
         <summary>Advanced (for scientists)</summary>
         <div class="adv">
+          <p class="tech">Sliders change the brain model live. Stimulate drives a group at the Hz you set; silence holds it off.</p>
           <h3>Brain parameters</h3>
           {#each params as p (p.key)}
             <div class="param">
@@ -603,6 +603,7 @@
   .err { margin-top: 8px; border: 1px solid #fff; border-radius: 10px; padding: 6px 8px; font-size: 12px; }
   .tech { font-size: 12px; opacity: 0.65; }
   .dial { margin-bottom: 14px; }
+  .calm { width: 100%; margin-top: 6px; }
   .dl { display: flex; justify-content: space-between; align-items: baseline; }
   .dl b { font-variant-numeric: tabular-nums; font-weight: 500; }
   .views { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 8px; }
