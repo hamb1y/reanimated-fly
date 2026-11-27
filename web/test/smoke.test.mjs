@@ -24,8 +24,8 @@ after(() => procs.forEach((p) => p.kill()));
 test('page is served with plain labels', async () => {
   const r = await fetch(base + '/'); assert.equal(r.status, 200);
   const html = await r.text();
-  assert.ok(html.includes('flybrain'), 'title');
-  for (const label of ['How hungry', 'How scared', 'How lovesick', 'How receptive', 'Export run']) assert.ok(html.includes(label), label);
+  assert.ok(html.includes('Reanimated Fly'), 'title');
+  for (const label of ['How hungry', 'How scared', 'How keen to court', 'How receptive', 'Export run']) assert.ok(html.includes(label), label);
 });
 
 test('production bundle has no debug world handle', () => {

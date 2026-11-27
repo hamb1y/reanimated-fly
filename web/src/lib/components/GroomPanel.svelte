@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import FloatPanel from './FloatPanel.svelte';
 
-  let { x = 14, y = 540 }: { x?: number; y?: number } = $props();
+  let { x = 14, y = 540, h = $bindable(0) }: { x?: number; y?: number; h?: number } = $props();
   let g = $state<any>(null);
   let err = $state('');
 
@@ -18,17 +18,10 @@
   const manual = $derived(!!g?.manual);
 </script>
 
-<FloatPanel title="Dust and grooming" {x} {y} w={236} z={4}>
-  <div class="row">
+<FloatPanel title="Dust and grooming" {x} {y} w={236} z={4} bind:h>
+  <div class="groom-row">
     <button class:on={dusty} onclick={() => call('/dust', { on: !dusty })}>{dusty ? 'Stop dust' : 'Dust her antennae'}</button>
     <button class:on={manual} onclick={() => call('/groom', { on: !manual })}>{manual ? 'Stop grooming' : 'Groom now'}</button>
   </div>
-  {#if err}<p class="tech">{err}</p>{/if}
+  {#if err}<p class="groom-note">{err}</p>{/if}
 </FloatPanel>
-
-<style>
-  .row { display: flex; gap: 6px; }
-  .row button { flex: 1; font-size: 12px; }
-  .row button.on { background: #fff; color: #000; }
-  .tech { font-size: 11px; opacity: 0.75; margin: 8px 0 0; line-height: 1.35; }
-</style>

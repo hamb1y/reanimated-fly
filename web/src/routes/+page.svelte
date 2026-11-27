@@ -7,6 +7,9 @@
   import { DIALS, PRESETS, DEFAULT_PERSONALITY, KIND_NAME, describeState, toCsv, type Pers, type Sample } from '$lib/status';
   import FloatPanel from '$lib/components/FloatPanel.svelte';
   import GroomPanel from '$lib/components/GroomPanel.svelte';
+  import '../main.css';
+  import '@fontsource-variable/geist';
+  import '@fontsource-variable/geist-mono';
 
   const pct = (v: number) => Math.round(v * 100) + '%';
   const TOKENS: ObjKind[] = ['food', 'mate', 'scary'];
@@ -77,10 +80,24 @@
   let connHost = $state<HTMLElement>();
   let sparkEl = $state<HTMLCanvasElement>();
   let stageW = $state(1000), stageH = $state(700);
-  const statusX = $derived(Math.max(14, stageW - 314));
-  const connX = $derived(Math.max(14, stageW - 384));
-  const connY = $derived(Math.max(14, stageH - 440));
-  const eyesX = $derived(Math.max(14, (stageW - 340) / 2));
+  // ---- panel layout: two 236 px columns on the left, status and connectome on the right.
+  // The eye panel sits top-centre when the gap fits it, else under Smell (narrow screens, e.g. 1280 and 1366 wide).
+  const M = 14, GAP = 12, COL = 236, STATUS_W = 290;
+  let placeH = $state(0), smellH = $state(0), statusH = $state(0), connH = $state(0);
+  const col2X = M + COL + GAP;
+  const statusX = $derived(Math.max(M, stageW - STATUS_W - M));
+  const wide = $derived(statusX - GAP - (col2X + COL + GAP) >= 340);
+  const eyesW = $derived(wide ? 340 : 300);
+  const eyesX = $derived(wide ? Math.round((col2X + COL + statusX - eyesW) / 2) : col2X);
+  const eyesY = $derived(wide ? M : M + (smellH || 250) + GAP);
+  const groomY = $derived(M + (placeH || 360) + GAP);
+  const connW = $derived(wide ? 370 : 300);
+  const connX = $derived(Math.max(M, stageW - connW - M));
+  // Connectome panel fits between the status panel and the stage bottom: the chip list scrolls before the brain view shrinks.
+  const connAvail = $derived(stageH - (M + (statusH || 250) + GAP) - M - 120);
+  const chipsMax = $derived(Math.max(53, Math.floor(Math.min(240, connAvail - 290) / 29) * 29 - 5));  // whole chip rows (29 px each)
+  const connCanvasH = $derived(Math.round(Math.max(140, Math.min(290, connAvail - chipsMax))));
+  const connY = $derived(Math.max(M + (statusH || 250) + GAP, stageH - (connH || 470) - M));
   const selObj = $derived(objects.find((o) => o.id === selected));
   const status = $derived(describeState(physState, objects));
 
@@ -387,7 +404,7 @@
   <section class="stage" bind:this={stageEl}>
     <div class="host" class:armed={armed !== null} bind:this={viewHost}></div>
 
-    <FloatPanel title="Place things" x={14} y={14} w={236} z={4}>
+    <FloatPanel title="Place things" x={M} y={M} w={COL} z={4} bind:h={placeH}>
       <div class="tokens">
         {#each TOKENS as k (k)}
           <button class="token" class:on={armed === k} onpointerdown={(e) => tokenDown(k, e)}>
@@ -395,12 +412,15 @@
           </button>
         {/each}
       </div>
-      <p class="tech">Click a token, then click the view. Or drag it in. Drag things to move them. Select one and press Delete to remove it, or remove every one of a kind below.</p>
+      <p class="tech hint">Click a token, then the view, or drag it in. Drag things to move them. Select one and press Delete to remove it.</p>
+      <div class="rowlabel">Remove all</div>
       <div class="views">
         {#each TOKENS as k (k)}
-          <button disabled={!objects.some((o) => o.kind === k)} onclick={() => deleteKind(k)}>Remove {LABEL[k].toLowerCase()} ({objects.filter((o) => o.kind === k).length})</button>
+          {@const n = objects.filter((o) => o.kind === k).length}
+          <button disabled={n === 0} onclick={() => deleteKind(k)} aria-label={'Remove every ' + LABEL[k].toLowerCase()}>{LABEL[k]} <span class="n">{n}</span></button>
         {/each}
       </div>
+      <div class="rowlabel">Camera</div>
       <div class="views">
         <button class:on={followFly} onclick={toggleFollow}>Follow</button>
         <button onclick={closeUp}>Close up</button>
@@ -408,64 +428,66 @@
       </div>
     </FloatPanel>
 
-    <FloatPanel title="Smell" x={264} y={14} w={236} z={4}>
+    <FloatPanel title="Smell" x={col2X} y={M} w={COL} z={4} bind:h={smellH}>
       <div class="views">
         {#each ['off', 'food', 'cva'] as m (m)}
           <button class:on={odorMode === m} onclick={() => (odorMode = m as typeof odorMode)}>{m === 'off' ? 'Off' : m === 'food' ? 'Food' : 'CVA'}</button>
         {/each}
       </div>
-      {#if odorMode !== 'off'}
-        <p class="tech">Heat on the counter: concentration, log scale (peak {fmtC(odorMax)}).{#if odorAnt}{" "}Antennae: L {fmtC(odorAnt.left)}, R {fmtC(odorAnt.right)}.{/if}</p>
-      {/if}
-      <div class="dial">
+      <p class="tech odor">{#if odorMode === 'off'}Off. Pick one to see it on the counter.{:else}Heat on the counter: concentration, log scale (peak <span class="n">{fmtC(odorMax)}</span>).{#if odorAnt}{" "}Antennae: L <span class="n">{fmtC(odorAnt.left)}</span>, R <span class="n">{fmtC(odorAnt.right)}</span>.{/if}{/if}</p>
+      <div class="dial tight">
         <div class="dl"><label for="wx">Wind east</label><b>{windX.toFixed(0)}</b></div>
         <input id="wx" type="range" min="-300" max="300" step="10" bind:value={windX} oninput={sendWind} />
+      </div>
+      <div class="dial tight">
         <div class="dl"><label for="wy">Wind north</label><b>{windY.toFixed(0)}</b></div>
         <input id="wy" type="range" min="-300" max="300" step="10" bind:value={windY} oninput={sendWind} />
-        <button class="calm" onclick={calmWind} disabled={windX === 0 && windY === 0}>Calm</button>
       </div>
+      <button class="calm" onclick={calmWind} disabled={windX === 0 && windY === 0}>Calm</button>
     </FloatPanel>
 
-    <GroomPanel />
+    <GroomPanel x={M} y={groomY} />
 
-    <FloatPanel title="What the fly is doing" x={statusX} y={14} w={290} z={4}>
+    <FloatPanel title="What the fly is doing" x={statusX} y={M} w={STATUS_W} z={4} bind:h={statusH}>
       <div class="st" class:alert={status.alert}>{status.title}</div>
       <div class="tech">{status.detail}</div>
-      <div class="bar"><span>forward</span><div class="track"><i style:width={pct(motor.forward)}></i></div><b>{motor.forward.toFixed(2)}</b></div>
-      <div class="bar"><span>turn</span><div class="track c"><i style:left={motor.turn < 0 ? 50 + motor.turn * 50 + '%' : '50%'} style:width={Math.abs(motor.turn) * 50 + '%'}></i></div><b>{motor.turn.toFixed(2)}</b></div>
+      <div class="bars">
+        <div class="bar"><span>forward</span><div class="track"><i style:width={pct(motor.forward)}></i></div><b>{motor.forward.toFixed(2)}</b></div>
+        <div class="bar"><span>turn</span><div class="track c"><i style:left={motor.turn < 0 ? 50 + motor.turn * 50 + '%' : '50%'} style:width={Math.abs(motor.turn) * 50 + '%'}></i></div><b>{motor.turn.toFixed(2)}</b></div>
+      </div>
       <canvas class="spark" bind:this={sparkEl}></canvas>
       <div class="sel">
         {#if selObj}
           <span>{KIND_NAME[selObj.kind]} selected</span>
           <button onclick={deleteSelected}>Delete</button>
         {:else}
-          <span class="tech">Nothing selected. Brain spikes per frame: {spikeCount}</span>
+          <span class="tech">Nothing selected. Spikes per frame: <span class="n">{spikeCount}</span></span>
         {/if}
       </div>
     </FloatPanel>
 
     {#if showEyes}
-      <FloatPanel title="What the fly sees" x={eyesX} y={14} w={340} z={5} onclose={() => (showEyes = false)}>
-        <div class="eyes">
-          <div class="eye"><canvas bind:this={eyeL} width="150" height="150"></canvas><span>LEFT eye</span></div>
-          <div class="eye"><canvas bind:this={eyeR} width="150" height="150"></canvas><span>RIGHT eye</span></div>
+      <FloatPanel title="What the fly sees" x={eyesX} y={eyesY} w={eyesW} z={5} onclose={() => (showEyes = false)}>
+        <div class="eyes" style:--eye={(wide ? 150 : 128) + 'px'}>
+          <div class="eye"><canvas bind:this={eyeL} width="150" height="150"></canvas><span>Left eye</span></div>
+          <div class="eye"><canvas bind:this={eyeR} width="150" height="150"></canvas><span>Right eye</span></div>
         </div>
       </FloatPanel>
     {:else}
-      <button class="eyesopen" onclick={() => (showEyes = true)}>Show what the fly sees</button>
+      <button class="eyesopen" style:left={eyesX + 'px'} style:top={eyesY + 'px'} onclick={() => (showEyes = true)}>Show what the fly sees</button>
     {/if}
 
     {#if showConn}
-      <FloatPanel title="Connectome: 138,639 neurons" x={connX} y={connY} w={370} z={6} onclose={() => (showConn = false)}>
-        <div class="conn" bind:this={connHost}></div>
-        <div class="chips">
+      <FloatPanel title="Connectome: 138,639 neurons" x={connX} y={connY} w={connW} z={6} onclose={() => (showConn = false)} bind:h={connH}>
+        <div class="conn" style:height={connCanvasH + 'px'} bind:this={connHost}></div>
+        <div class="chips" style:max-height={chipsMax + 'px'}>
           {#each chipNames as name (name)}
             <button class="chip" class:on={chips.includes(name)} onclick={() => toggleChip(name)}>
               {name.replace(/_/g, ' ')}<small>{groupRate[name] != null ? Math.round(groupRate[name]) + ' Hz' : ''}</small>
             </button>
           {/each}
         </div>
-        <p class="tech">Each dot is one neuron, placed at its FlyWire soma position. Flashes are spikes from the brain. Chips colour a group.</p>
+        <p class="tech">One dot per neuron, at its FlyWire soma position. Flashes are spikes. Chips colour a group.</p>
       </FloatPanel>
     {/if}
 
@@ -478,10 +500,10 @@
 
   <aside class="col">
     <header class="top">
-      <h1>Fly in a kitchen</h1>
+      <h1>Reanimated Fly</h1>
       <div class="links">
-        <span class="dot" class:on={brainLive}></span>Brain {brainLive ? 'live' : 'offline'}
-        <span class="dot" class:on={bodyLive}></span>Body {bodyLive ? 'live' : 'offline'}
+        <span class="pill" class:on={brainLive}><span class="dot"></span>Brain {brainLive ? 'live' : 'offline'}</span>
+        <span class="pill" class:on={bodyLive}><span class="dot"></span>Body {bodyLive ? 'live' : 'offline'}</span>
       </div>
     </header>
     {#if err}<div class="err">{err}</div>{/if}
@@ -527,7 +549,7 @@
         <button class:on={showConn} onclick={() => (showConn = !showConn)}>{showConn ? 'Hide connectome' : 'Show connectome'}</button>
         <button onclick={exportCsv} disabled={rowCount === 0}>Export run (CSV)</button>
       </div>
-      <div class="tech">{rowCount} rows recorded (4 per second)</div>
+      <div class="tech"><span class="n">{rowCount}</span> rows recorded (4 per second)</div>
     </section>
 
     <section>
@@ -563,7 +585,7 @@
             <button onclick={resetBrain}>reset brain</button>
             <button onclick={resetBody}>reset body</button>
           </div>
-          <div class="tech">brain {brainHealth.sim_speed != null ? 'sim speed ' + brainHealth.sim_speed.toFixed(2) + '×' : ''} · neurons {brainHealth.neurons?.toLocaleString() ?? '–'} · synapses {brainHealth.synapses?.toLocaleString() ?? '–'}</div>
+          <div class="tech n">brain {brainHealth.sim_speed != null ? 'sim speed ' + brainHealth.sim_speed.toFixed(2) + '×' : ''} · neurons {brainHealth.neurons?.toLocaleString() ?? '–'} · synapses {brainHealth.synapses?.toLocaleString() ?? '–'}</div>
         </div>
       </details>
     </section>
@@ -575,73 +597,3 @@
     <i style:background={TOKEN_COLORS[ghost.kind]}></i>{LABEL[ghost.kind]}
   </div>
 {/if}
-
-<style>
-  :global(:root) { --accent: #b3261e; --accent-text: #e5574d; }  /* the fly's eye red (the 3D eye colour is 0xb3261e) */
-  :global(html, body) { margin: 0; height: 100%; background: #000; color: #fff; font: 14px/1.45 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
-  :global(button) { font: inherit; color: #fff; background: #000; border: 1px solid #fff; border-radius: 10px; padding: 6px 10px; cursor: pointer; }
-  :global(button:hover:not(:disabled)) { background: var(--accent); border-color: var(--accent); color: #fff; }
-  :global(button.on) { background: var(--accent); border-color: var(--accent); color: #fff; }
-  :global(button:focus-visible, input:focus-visible) { outline: 2px solid var(--accent-text); outline-offset: 2px; }
-  :global(button:disabled) { opacity: 0.35; cursor: default; }
-  :global(input[type='range']) { width: 100%; accent-color: var(--accent); margin: 4px 0; }
-  :global(input.num) { background: #000; color: #fff; border: 1px solid #fff; border-radius: 8px; padding: 3px 6px; font: inherit; width: 100%; box-sizing: border-box; }
-
-  .shell { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 1fr); gap: 16px; height: 100vh; box-sizing: border-box; padding: 16px; background: #000; }
-  .stage { position: relative; min-width: 0; min-height: 0; border-radius: 16px; overflow: hidden; background: #f4efe6; }
-  .host { position: absolute; inset: 0; }
-  .host :global(canvas) { display: block; touch-action: none; }
-  .host.armed :global(canvas) { cursor: crosshair; }
-  .col { overflow-y: auto; min-width: 0; padding: 0 6px 32px 0; }
-  .top { display: flex; flex-direction: column; gap: 6px; }
-  h1 { font-size: 22px; margin: 0; font-weight: 600; }
-  h2 { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; margin: 22px 0 10px; font-weight: 600; }
-  h3 { font-size: 13px; margin: 14px 0 6px; font-weight: 600; }
-  .links { font-size: 13px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; border: 1px solid #fff; background: #000; margin-right: 2px; }
-  .dot.on { background: var(--accent); border-color: var(--accent); }
-  .err { margin-top: 8px; border: 1px solid #fff; border-radius: 10px; padding: 6px 8px; font-size: 12px; }
-  .tech { font-size: 12px; opacity: 0.65; }
-  .dial { margin-bottom: 14px; }
-  .calm { width: 100%; margin-top: 6px; }
-  .dl { display: flex; justify-content: space-between; align-items: baseline; }
-  .dl b { font-variant-numeric: tabular-nums; font-weight: 500; }
-  .views { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 8px; }
-  .views button { padding: 6px 4px; font-size: 12px; }
-  .presets, .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
-  details summary { cursor: pointer; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
-  .adv { margin-top: 8px; }
-  .param { display: grid; grid-template-columns: 1fr 76px; gap: 2px 8px; margin-bottom: 10px; }
-  .param input[type='range'] { grid-column: 1 / 3; }
-  .param label { align-self: center; font-family: ui-monospace, monospace; font-size: 12px; }
-  .group { border: 1px solid #fff; border-radius: 10px; padding: 7px 8px; margin-bottom: 7px; }
-  .group.stim { border-width: 2px; } .group.sil { border-style: dashed; }
-  .gname { display: flex; gap: 6px; align-items: baseline; }
-  .gname span { font-family: ui-monospace, monospace; font-size: 12px; }
-  .gname small { opacity: 0.6; } .gname em { margin-left: auto; font-style: normal; font-variant-numeric: tabular-nums; }
-  .gctl { display: grid; grid-template-columns: 56px 1fr 1fr; gap: 5px; margin-top: 6px; }
-  .tokens { display: grid; gap: 6px; }
-  .token { display: flex; align-items: center; gap: 8px; text-align: left; }
-  .token i, .ghost i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid #fff; }
-  .st { font-size: 20px; font-weight: 600; }
-  .st.alert { color: var(--accent-text); text-decoration: underline; }
-  .bar { display: grid; grid-template-columns: 56px 1fr 40px; gap: 8px; align-items: center; margin: 6px 0; font-size: 12px; }
-  .bar b { font-variant-numeric: tabular-nums; font-weight: 500; text-align: right; }
-  .track { position: relative; height: 8px; border: 1px solid #fff; border-radius: 4px; overflow: hidden; }
-  .track i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--accent); }
-  .track.c::after { content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #fff; }
-  .spark { width: 100%; height: 44px; display: block; margin-top: 6px; border-bottom: 1px solid #fff; }
-  .sel { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 13px; }
-  .conn { position: relative; height: 290px; border-radius: 10px; overflow: hidden; border: 1px solid #fff; background: #000; }
-  .conn :global(canvas) { display: block; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .chip { font-size: 12px; padding: 3px 8px; display: inline-flex; gap: 6px; text-transform: none; }
-  .chip small { opacity: 0.7; }
-  .banner { position: absolute; left: 50%; transform: translateX(-50%); bottom: 14px; background: #000; color: #fff; border: 1px solid #fff; border-radius: 14px; padding: 8px 12px; font-size: 13px; max-width: 80%; box-sizing: border-box; z-index: 8; }
-  .banner.top { top: 14px; bottom: auto; }
-  .ghost { position: fixed; transform: translate(-50%, -120%); pointer-events: none; background: #000; border: 1px solid #fff; border-radius: 10px; padding: 4px 8px; display: flex; gap: 6px; align-items: center; z-index: 50; font-size: 13px; }
-  .eyes { display: flex; gap: 10px; justify-content: center; }
-  .eye { text-align: center; font-size: 11px; }
-  .eye canvas { width: 150px; height: 150px; display: block; background: #000; border-radius: 50%; }
-  .eyesopen { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 5; }
-</style>
