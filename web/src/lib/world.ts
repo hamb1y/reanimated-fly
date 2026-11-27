@@ -4,6 +4,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { buildKitchen } from './kitchen';
 import { OdorOverlay } from './odor';
+import { createSpider } from './spider';
+import { createFood } from './food';
 import type { OdorGrid, OdorSpecies } from './odorheat';
 
 let MAX_ANISO = 4;
@@ -15,7 +17,9 @@ export type ObjKind = 'food' | 'mate' | 'scary';
 export type WorldObj = { id: string; kind: ObjKind; pos: [number, number]; amount?: number };
 type MeshJson = { vertices: number[][]; faces: number[][] };
 type Part = { body: number; key: string; color: number; opacity: number; geo: THREE.BufferGeometry };
-type View = { kind: ObjKind; group: THREE.Group; ring: THREE.Mesh; rig?: FlyRig; pos: [number, number]; amount: number };
+type Anim = { update(dt: number, moving: boolean): void; dispose(): void };
+type FoodModel = { setAmount(a: number): void; dispose(): void };
+type View = { kind: ObjKind; group: THREE.Group; ring: THREE.Mesh; rig?: FlyRig; pos: [number, number]; amount: number; anim?: Anim; food?: FoodModel; lastPos?: [number, number]; movingT?: number };
 
 export const TOKEN_COLORS: Record<ObjKind, string> = { food: '#f2683d', mate: '#5b7fd6', scary: '#d7261e' };
 
@@ -161,25 +165,6 @@ export class World {
     s.add(fill);
   }
 
-  private spider(): THREE.BufferGeometry {
-    if (this.spiderGeo) return this.spiderGeo;
-    const parts: THREE.BufferGeometry[] = [];
-    const body = new THREE.SphereGeometry(4.2, 14, 10);
-    body.translate(0, 0, 5.5);
-    parts.push(body);
-    for (let i = 0; i < 8; i++) {
-      const side = i < 4 ? 1 : -1, k = i % 4, x = (k - 1.5) * 3.2;
-      const start = new THREE.Vector3(x * 0.3, side * 2.2, 5.5), end = new THREE.Vector3(x, side * 11, 0.2);
-      const dir = end.clone().sub(start), len = dir.length();
-      const leg = new THREE.CylinderGeometry(0.45, 0.3, len, 5);
-      leg.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize()));
-      leg.translate((start.x + end.x) / 2, (start.y + end.y) / 2, (start.z + end.z) / 2);
-      parts.push(leg);
-    }
-    this.spiderGeo = mergeGeometries(parts, false) ?? parts[0];
-    return this.spiderGeo;
-  }
-
   private placeCamera(dist: number, fly: boolean) {
     const target = fly && this.focusSet ? this.thorax.clone() : new THREE.Vector3(30, 20, 0);
     const dir = new THREE.Vector3(-0.3, -0.85, fly ? 0.38 : 0.55).normalize();  // low angle when following: the far wall and window show behind the fly
@@ -208,7 +193,17 @@ export class World {
     this.dirty = true;
   }
 
+  private lastAnimT = performance.now();
   private tick() {
+    const nowMs = performance.now();
+    const adt = Math.min(0.1, (nowMs - this.lastAnimT) / 1000);
+    this.lastAnimT = nowMs;
+    for (const v of this.views.values()) {
+      if (!v.anim) continue;
+      if (!v.lastPos || v.lastPos[0] !== v.pos[0] || v.lastPos[1] !== v.pos[1]) { v.lastPos = [v.pos[0], v.pos[1]]; v.movingT = nowMs; }
+      v.anim.update(adt, v.movingT != null && nowMs - v.movingT < 250);
+      this.dirty = true;
+    }
     if (this.buf.length && this.applyInterp(performance.now())) this.dirty = true;
     if (this.follow && this.focusSet) {
       const d = this.thorax.clone().sub(this.lastFocus);
@@ -386,14 +381,13 @@ export class World {
     group.add(ring);
     const v: View = { kind: o.kind, group, ring, pos: o.pos, amount: 1 };
     if (o.kind === 'food') {
-      const m = new THREE.Mesh(this.foodGeo, this.foodMat);
-      m.position.z = 2.4;
-      m.castShadow = true;
-      group.add(m);
+      const f = createFood();
+      group.add(f.group);
+      v.food = f;
     } else if (o.kind === 'scary') {
-      const m = new THREE.Mesh(this.spider(), this.scaryMat);
-      m.castShadow = true;
-      group.add(m);
+      const s = createSpider();  // animated: idle breathing, walking gait while it is being moved, periodic threat display
+      group.add(s.group);
+      v.anim = s;
     } else if (this.parts.length) {
       this.attachRig(v);
     } else {
@@ -410,6 +404,8 @@ export class World {
     const v = this.views.get(id);
     if (!v) return;
     this.objRoot.remove(v.group);
+    v.anim?.dispose();
+    v.food?.dispose();
     this.views.delete(id);
   }
 
@@ -425,7 +421,7 @@ export class World {
       v.group.position.set(v.pos[0], v.pos[1], o.kind === 'mate' ? this.thorax.z : 0);
       if (o.kind === 'food') {
         v.amount = Math.max(0, Math.min(1, o.amount ?? 1));
-        v.group.scale.setScalar(0.3 + 0.7 * v.amount);
+        v.food?.setAmount(v.amount);
       }
     }
     for (const id of [...this.views.keys()]) if (!seen.has(id)) this.removeView(id);

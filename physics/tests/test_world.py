@@ -240,7 +240,8 @@ def test_looming_growth_from_approach():
     assert "looming" not in r["drives"]
 
 
-def test_looming_growth_is_smoothed_not_pulsed():
+def test_looming_growth_is_smoothed_not_pulsed(monkeypatch):
+    monkeypatch.setattr(B, "PRED_ENABLED", False)  # this test moves the scary object by hand
     store = WorldStore()
     store.add("scary", (40.0, 0.0))
     b = B.Behavior(store)

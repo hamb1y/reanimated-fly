@@ -171,6 +171,11 @@
     selected = null;
     try { await del('/api/physics/world/objects/' + encodeURIComponent(id)); } catch (e) { err = 'delete: ' + e; }
   }
+  async function deleteKind(kind: ObjKind) {
+    const ids = objects.filter((o) => o.kind === kind).map((o) => o.id);
+    if (selObj?.kind === kind) selected = null;
+    try { await Promise.all(ids.map((id) => del('/api/physics/world/objects/' + encodeURIComponent(id)))); } catch (e) { err = 'delete: ' + e; }
+  }
   async function clearWorld() {
     selected = null; armed = null;
     try { await del('/api/physics/world/objects'); } catch (e) { err = 'clear: ' + e; }
@@ -390,7 +395,12 @@
           </button>
         {/each}
       </div>
-      <p class="tech">Click a token, then click the view. Or drag it in. Drag things to move them. Select one and press Delete to remove it.</p>
+      <p class="tech">Click a token, then click the view. Or drag it in. Drag things to move them. Select one and press Delete to remove it, or remove every one of a kind below.</p>
+      <div class="views">
+        {#each TOKENS as k (k)}
+          <button disabled={!objects.some((o) => o.kind === k)} onclick={() => deleteKind(k)}>Remove {LABEL[k].toLowerCase()} ({objects.filter((o) => o.kind === k).length})</button>
+        {/each}
+      </div>
       <div class="views">
         <button class:on={followFly} onclick={toggleFollow}>Follow</button>
         <button onclick={closeUp}>Close up</button>
@@ -440,7 +450,7 @@
           <div class="eye"><canvas bind:this={eyeL} width="150" height="150"></canvas><span>LEFT eye</span></div>
           <div class="eye"><canvas bind:this={eyeR} width="150" height="150"></canvas><span>RIGHT eye</span></div>
         </div>
-        <p class="tech">The scene drawn from each eye's real spot on her head, about 700 dots (ommatidia) per eye, 120 degrees each. The same view is rendered by the physics service and sent to the brain's photoreceptors. The looming neurons do not respond to it (measured), so fleeing still uses a scripted looming signal as well.</p>
+        <p class="tech">The scene drawn from each eye's real spot on her head, about 700 dots (ommatidia) per eye, 120 degrees each. The same view is rendered by the physics service. Sending it to the brain's photoreceptors is off by default: it did not drive the looming neurons (measured) and it set off whole-brain firing. Fleeing uses a scripted looming signal.</p>
       </FloatPanel>
     {:else}
       <button class="eyesopen" onclick={() => (showEyes = true)}>Show what the fly sees</button>

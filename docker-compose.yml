@@ -21,8 +21,8 @@ services:
     command: ["uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "5032", "--log-level", "info"]
     environment:
       BRAIN_URL: ws://127.0.0.1:5031/stream
-      VISION_TO_BRAIN: "1"
-      LOOMING_DRIVE: both
+      VISION_TO_BRAIN: "0"
+      LOOMING_DRIVE: scripted
     restart: unless-stopped
   web:
     build: {context: ./web, network: host}

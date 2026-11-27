@@ -13,13 +13,17 @@ What the brain decides here, and what is still a rule (also shown in the UI):
 """
 from __future__ import annotations
 
+import math
+
 from .behavior import LOOM_HZ, LPLC2_HZ, SCARY_RANGE
-from .world import clamp
+from .world import clamp, wrap_pi
 
 GO_HZ_PER_UNIT = 410.0  # P9 rate per unit of requested forward speed (measured calibration, see above)
 TURN_GAIN = 4.0  # the brain's turn output is small (about +-0.11 for one-sided looming at full threat); scaled up to steer
 # NB: an earlier version subtracted a 'bias of +0.17' from the brain's turn. That number was an artifact of a measurement
 # taken while other groups were being stimulated; with only the walking neurons on the bias is about -0.04. It was removed.
+FACING_AWAY_DEG = 20.0  # threat this close to straight behind: no more turning
+FACING_RAMP_DEG = 50.0
 LOOM_GROUPS = {"left": ("looming_left", "lplc2_left"), "right": ("looming_right", "lplc2_right")}
 
 
@@ -48,6 +52,12 @@ def apply(r: dict, motor: tuple[float, float] | None) -> dict:
     bf, bt = motor
     out["forward"] = clamp(bf, 0.0, 1.0)
     if flee is not None:
-        out["turn"] = clamp(-TURN_GAIN * bt, -1.0, 1.0)  # brain turn: + = right; physics turn: + = left
+        turn = clamp(-TURN_GAIN * bt, -1.0, 1.0)  # brain turn: + = right; physics turn: + = left
+        # The brain only knows which SIDE the threat is on, not where she is facing, so its turn never stops: close to a threat
+        # she pirouetted in circles. Once she faces away (threat within FACING_AWAY_DEG of straight behind) the turn is
+        # released, and it ramps back in over the next FACING_RAMP_DEG. Direction and strength still come from the brain.
+        away_err = abs(wrap_pi(flee["bearing"] + math.pi))
+        k = clamp((math.degrees(away_err) - FACING_AWAY_DEG) / FACING_RAMP_DEG, 0.0, 1.0)
+        out["turn"] = turn * k
         out["steering"] = "brain"
     return out

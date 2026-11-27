@@ -58,6 +58,11 @@ WANDER_TURN = 0.6  # max turn command of the idle wander
 SMELL_MIN = 0.01  # mean antennal concentration (units of odor.K_HALF) above which she follows the food smell
 SMELL_GAIN = 150.0  # turn per unit left/right asymmetry (cL-cR)/(cL+cR); the antennae are ~1 mm apart, so asymmetry is ~0.5%/mm of gradient
 SMELL_FWD = 0.9  # forward command while tracking a smell
+PRED_SPEED = 3.0  # mm/s: a scary object (the spider) stalks her, much slower than she walks (~10 mm/s), so she can get away
+PRED_RANGE = 110.0  # mm: it notices her and starts stalking inside this distance
+PRED_STOP = 14.0  # mm: it stops this far from her (it never "catches" her; the demo is about fleeing)
+PRED_PAUSE_S = 3.0  # after the user drags it, it stays put this long
+PRED_ENABLED = os.environ.get("PREDATOR_MOVES", "1") != "0"
 LOOM_TAU_S = 0.3  # growth estimate smoothing: keeps looming steady while approaching, decays when still
 
 
@@ -140,7 +145,7 @@ def _flee(s: Sensed, fear: float, gain: float) -> Plan:
     if s.dist < ESCAPE_DIST:
         drives.update(_drives(escape_gf=ESCAPE_HZ * fear))
     away = wrap_pi(s.bearing + math.pi)  # turn to face away from the object
-    return Plan("flee", FLEE_FWD * gain, steer(away), drives, goal=(away, math.inf, None))
+    return Plan("flee", FLEE_FWD * gain, steer(away), drives, goal=(away, math.inf, s.id))  # s.id: the threat itself is not an obstacle to detour around
 
 
 def _court(s: Sensed, lust: float, receptivity: float, gain: float) -> Plan:
@@ -162,7 +167,10 @@ def _eat(s: Sensed, hunger_gain: float, gain: float) -> Plan:
         drives.update(_drives(feed_mn9=FEED_HZ * hunger_gain))
     # arrival: slow down over the last ~12 mm so she stops on the food instead of orbiting it (the brain's walk output lags)
     forward = 0.0 if touching else APPROACH_FWD * gain * clamp((s.dist - REACH) / 12.0, 0.12, 1.0)
-    return Plan("eat", forward, steer(s.bearing), drives, eat_target=s.id if touching else None, goal=(s.bearing, s.dist, s.id))
+    # Bearing to a target a few mm away swings wildly as she moves (it is measured from the thorax). Stop steering when touching
+    # (she was pivoting on the spot, never slowing below the eating speed limit) and fade the turn out over the last 8 mm.
+    turn = 0.0 if touching else steer(s.bearing) * clamp(s.dist / 8.0, 0.0, 1.0)
+    return Plan("eat", forward, turn, drives, eat_target=s.id if touching else None, goal=(s.bearing, s.dist, s.id))
 
 
 def wander(t: float) -> float:
@@ -194,11 +202,37 @@ class Behavior:
         self._theta: dict[int, float] = {}
         self._growth: dict[int, float] = {}
         self._flee_id: int | None = None
+        self._pred_pos: dict[int, tuple[float, float]] = {}  # where the predator logic last put each scary object
+        self._pred_pause: dict[int, float] = {}
         self.odor = odor_mod.OdorField()
         self.smell: dict = {"food": {"left": 0.0, "right": 0.0}, "cva": {"left": 0.0, "right": 0.0}}
         self.obstacle_sense: obst.ObstacleSense | None = None  # set by main.py (kitchen props); None = no obstacles
         self.avoider = obst.Avoider()
         self.rays: dict | None = None
+
+    def _move_predators(self, xy, t: float, dt: float) -> None:
+        """Scary objects are predators: within PRED_RANGE they stalk her at PRED_SPEED (scripted; the web draws a walking spider).
+        A drag by the user is detected as a position the logic did not set, and pauses the stalking for PRED_PAUSE_S."""
+        for o in self.store.objects():
+            if o.kind != "scary":
+                continue
+            last = self._pred_pos.get(o.id)
+            if last is not None and (abs(o.x - last[0]) > 0.01 or abs(o.y - last[1]) > 0.01):
+                self._pred_pause[o.id] = t + PRED_PAUSE_S  # moved by the user
+                self._pred_pos[o.id] = (o.x, o.y)
+                continue
+            if t < self._pred_pause.get(o.id, -1e9):
+                continue
+            dx, dy = xy[0] - o.x, xy[1] - o.y
+            d = math.hypot(dx, dy)
+            if d > PRED_RANGE or d <= PRED_STOP:
+                self._pred_pos[o.id] = (o.x, o.y)
+                continue
+            step = min(PRED_SPEED * dt, d - PRED_STOP)
+            nx = clamp(o.x + dx / d * step, -ARENA_HALF_X, ARENA_HALF_X)
+            ny = clamp(o.y + dy / d * step, -ARENA_HALF_Y, ARENA_HALF_Y)
+            moved = self.store.move(o.id, [nx, ny])
+            self._pred_pos[o.id] = (moved.x, moved.y) if moved else (nx, ny)
 
     def reset_history(self) -> None:
         self._t = None
@@ -226,6 +260,8 @@ class Behavior:
             self._t, self._xy = t, xy
             self.hunger_level = min(1.0, self.hunger_level + HUNGER_RISE_PER_S * dt)
 
+        if PRED_ENABLED and dt > 1e-9:
+            self._move_predators(xy, t, dt)
         objects = self.store.objects()
         sensed = []
         live = set()
