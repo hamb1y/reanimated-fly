@@ -1,6 +1,6 @@
-# flybrain
+# Reanimated Fly
 
-flybrain puts a leaky integrate-and-fire model of the adult fruit fly brain, built from the FlyWire connectome, into a
+Reanimated Fly puts a leaky integrate-and-fire model of the adult fruit fly brain, built from the FlyWire connectome, into a
 walking NeuroMechFly body in a 3D kitchen. You can place food, a mate and a scary object in the scene, tune how hungry,
 scared, lovesick and receptive the fly is, and watch the connectome spike while it reacts.
 
