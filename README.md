@@ -1,8 +1,9 @@
 # Reanimated Fly
 
 Reanimated Fly puts a leaky integrate-and-fire model of the adult fruit fly brain, built from the FlyWire connectome, into a
-walking NeuroMechFly body in a 3D kitchen. You can place food, a mate and a scary object in the scene, tune how hungry,
-scared, lovesick and receptive the fly is, and watch the connectome spike while it reacts.
+walking NeuroMechFly body in a 3D kitchen. You can place food, a mate, and a scary spider in the scene, tune how
+hungry, scared, keen to court and receptive the fly is, let it smell food across the counter, and watch the connectome
+spike while it reacts.
 
 ![The fly in the kitchen](web/shots/10-idle.png)
 
@@ -30,7 +31,8 @@ Then open **http://127.0.0.1:5030**.
 Dry run, with no downloads and no builds: `./install.sh --check` tests the source URLs, verifies `data/` and reports the
 Docker and GPU status. Force a mode with `--cpu` or `--gpu`.
 
-Stop with `docker compose down`. Logs: `docker compose logs -f`.
+Stop with `docker compose down`. Logs: `docker compose logs -f`. To restart from scratch whatever state it is in:
+`docker compose down && ./install.sh`.
 
 ## Screenshots
 
@@ -51,10 +53,11 @@ Stop with `docker compose down`. Logs: `docker compose logs -f`.
 | Brain on | Speed (simulated time / wall time) |
 |---|---|
 | 8-core CPU | about 0.25x to 1x real time, depending on how much is stimulated |
-| NVIDIA GPU (RTX 5070 Ti) | about 8x real time |
+| NVIDIA GPU, RTX 5070 Ti (16 GiB) | about 25x real time (measured by the brain's own capacity report) |
+| NVIDIA GPU, RTX 3050 Ti (4 GiB laptop) | about 3.5x real time |
 
-The walking body runs at about real time on one CPU core. The "Time speed" slider in the UI is capped at the maximum
-this computer can sustain.
+The walking body (MuJoCo, CPU) runs at about real time, about 1.0x, so it is the bottleneck on every machine. Keep Time
+speed at 1x for a smooth demo. The "Time speed" slider in the UI is capped at the maximum this computer can sustain.
 
 ## Ports
 
@@ -95,21 +98,29 @@ browser ──► web :5030  (SvelteKit + three.js; proxies /api/brain, /api/phy
 | Connectome brain (138,639 neurons, FlyWire v783, Shiu et al. LIF rules) | **Real.** It runs live and its spikes show in the connectome view. |
 | Walking speed | **Real brain output.** The brain's forward output sets how fast the fly walks, through the walking neurons. |
 | Fleeing turn | **Partly real.** A scary object drives the looming (LC4) and LPLC2 neurons on its side. While the fly flees, the brain's turn output steers it. The decision to flee is a rule. |
-| Smell | **Real neurons.** Food odour is converted to rates for the FlyWire olfactory receptor groups (ORN groups). |
+| Smell | **Real neurons.** Food odour spreads and decays on the counter (diffusion plus wind) and is converted to rates for the FlyWire olfactory receptor groups (ORN groups), one per antenna. The steering toward the odour is a rule on the left-right difference. |
 | Vision | **Rendered, not used for looming.** Both eyes are rendered (661 ommatidia each) and the image is sent to the photoreceptors. In measurements the photoreceptor input did not produce a looming response, so fleeing still comes from the rule. |
-| Steering toward food and mates, eating, hunger, choosing between fear, lust and hunger | **Scripted rules.** |
+| Steering toward food and mates, eating, hunger, choosing between fear, courtship and hunger | **Scripted rules.** |
+| Grooming | **Scripted kinematics** (ported from NeuroMechFly), started by a button. |
+| Obstacles | The kitchen props are real MuJoCo contact objects. The fly cannot walk through them. |
 | Mate | **Stand-in.** FlyWire is a female connectome and the body is female, so there is no real courtship circuit. The mate is a labelled placeholder. |
 | The fly | **Female**, as in FlyWire and the NeuroMechFly body. |
 | Flight | **Not possible.** The body walks. |
+| Scary object | A static spider. It does not move. |
 | Kitchen | Procedural scene, no 3D assets. |
 
 ## Controls
 
-- **Place things:** click Food, Mate or Scary, then click the view. Or drag a token into the view.
+- **Place things:** click Food, Mate or Scary, then click the view. Or drag a token into the view. The "Remove all"
+  buttons clear one kind at a time and show how many there are.
 - **Move things:** drag any object on the table. Select it and press Delete to remove it. Esc clears the armed token and the selection.
+- **Smell:** pick Off, Food or CVA to show the odour as a heat map on the counter. Wind east and Wind north blow it
+  around, Calm resets the wind.
+- **Dust and grooming:** make the fly dust her antennae or groom now.
+- **What the fly sees / is doing:** the two eye views, and the fly's current behaviour with the brain's forward and turn output.
 - **Camera:** Follow, Close up, Kitchen.
-- **The fly:** sliders for how hungry, how scared, how lovesick and how receptive it is. Presets: Coward, Starving,
-  Lovesick, Chill.
+- **The fly:** sliders for how hungry, how scared, how keen to court and how receptive it is. Presets: Coward, Starving,
+  Courting, Chill.
 - **Brain and time:** Brain strength (the global synaptic weight, `w_syn`), Time speed (0.1x to 2x, capped at the maximum
   this computer sustains).
 - **Controls:** Reset fly, Clear world, Show connectome, Export run (CSV).
